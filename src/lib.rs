@@ -4,36 +4,64 @@ extern crate json;
 #[macro_use]
 extern crate lazy_static;
 
+#[cfg(feature = "thread_profiler")]
 use std::cell::RefCell;
+#[cfg(feature = "thread_profiler")]
 use std::fs::File;
+#[cfg(feature = "thread_profiler")]
 use std::io::Write;
+#[cfg(feature = "thread_profiler")]
 use std::sync::mpsc::{channel, Sender, Receiver};
+#[cfg(feature = "thread_profiler")]
 use std::sync::Mutex;
+#[cfg(feature = "thread_profiler")]
 use time::precise_time_ns;
 
+#[cfg(feature = "thread_profiler")]
+#[macro_export]
+macro_rules! profile_scope {
+    ($string:expr) => {
+        let _profile_scope = $crate::ProfileScope::new($string);
+    }
+}
+
+#[cfg(not(feature = "thread_profiler"))]
+#[macro_export]
+macro_rules! profile_scope {
+    ($string:expr) => {
+    }
+}
+
+#[cfg(feature = "thread_profiler")]
 lazy_static! {
     static ref GLOBAL_PROFILER: Mutex<Profiler> = Mutex::new(Profiler::new());
 }
 
+#[cfg(feature = "thread_profiler")]
 thread_local!(static THREAD_PROFILER: RefCell<Option<ThreadProfiler>> = RefCell::new(None));
 
+#[cfg(feature = "thread_profiler")]
 #[derive(Copy, Clone)]
 struct ThreadId(usize);
 
+#[cfg(feature = "thread_profiler")]
 struct ThreadInfo {
     name: String,
 }
 
+#[cfg(feature = "thread_profiler")]
 enum Sample {
     Enter(ThreadId, &'static str, u64),
     Exit(ThreadId, u64),
 }
 
+#[cfg(feature = "thread_profiler")]
 struct ThreadProfiler {
     id: ThreadId,
     tx: Sender<Sample>,
 }
 
+#[cfg(feature = "thread_profiler")]
 impl ThreadProfiler {
     fn enter(&self, name: &'static str) {
         let sample = Sample::Enter(self.id, name, precise_time_ns());
@@ -46,12 +74,14 @@ impl ThreadProfiler {
     }
 }
 
+#[cfg(feature = "thread_profiler")]
 struct Profiler {
     rx: Receiver<Sample>,
     tx: Sender<Sample>,
     threads: Vec<ThreadInfo>,
 }
 
+#[cfg(feature = "thread_profiler")]
 impl Profiler {
     fn new() -> Profiler {
         let (tx, rx) = channel();
@@ -126,8 +156,10 @@ impl Profiler {
     }
 }
 
+#[cfg(feature = "thread_profiler")]
 pub struct ProfileScope;
 
+#[cfg(feature = "thread_profiler")]
 impl ProfileScope {
     pub fn new(name: &'static str) -> ProfileScope {
         THREAD_PROFILER.with(|profiler| {
@@ -145,6 +177,7 @@ impl ProfileScope {
     }
 }
 
+#[cfg(feature = "thread_profiler")]
 impl Drop for ProfileScope {
     fn drop(&mut self) {
         THREAD_PROFILER.with(|profiler| {
@@ -155,14 +188,25 @@ impl Drop for ProfileScope {
     }
 }
 
+#[cfg(feature = "thread_profiler")]
 pub fn write_profile(filename: &str) {
     GLOBAL_PROFILER.lock()
                    .unwrap()
                    .write_profile(filename);
 }
 
+#[cfg(feature = "thread_profiler")]
 pub fn register_thread_with_profiler(thread_name: String) {
     GLOBAL_PROFILER.lock()
                    .unwrap()
                    .register_thread(thread_name);
+}
+
+#[cfg(not(feature = "thread_profiler"))]
+pub fn write_profile(_filename: &str) {
+    println!("WARN: write_profile was called when the thread profiler is disabled!");
+}
+
+#[cfg(not(feature = "thread_profiler"))]
+pub fn register_thread_with_profiler(_thread_name: String) {
 }
