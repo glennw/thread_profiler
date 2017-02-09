@@ -50,9 +50,11 @@ struct ThreadInfo {
 }
 
 #[cfg(feature = "thread_profiler")]
-enum Sample {
-    Enter(ThreadId, &'static str, u64),
-    Exit(ThreadId, u64),
+struct Sample {
+    tid: ThreadId,
+    name: &'static str,
+    t0: u64,
+    t1: u64,
 }
 
 #[cfg(feature = "thread_profiler")]
@@ -63,13 +65,16 @@ struct ThreadProfiler {
 
 #[cfg(feature = "thread_profiler")]
 impl ThreadProfiler {
-    fn enter(&self, name: &'static str) {
-        let sample = Sample::Enter(self.id, name, precise_time_ns());
-        self.tx.send(sample).ok();
-    }
-
-    fn exit(&self) {
-        let sample = Sample::Exit(self.id, precise_time_ns());
+    fn push_sample(&self,
+                   name: &'static str,
+                   t0: u64,
+                   t1: u64) {
+        let sample = Sample {
+            tid: self.id,
+            name: name,
+            t0: t0,
+            t1: t1,
+        };
         self.tx.send(sample).ok();
     }
 }
@@ -118,36 +123,29 @@ impl Profiler {
         let start_time = precise_time_ns();
         let mut data = json::JsonValue::new_array();
 
-        while let Ok(msg) = self.rx.try_recv() {
-            match msg {
-                Sample::Enter(tid, name, t) => {
-                    if t > start_time {
-                        break;
-                    }
-
-                    let thread_id = self.threads[tid.0].name.as_str();
-                    let us = t / 1000;
-
-                    data.push(object!{
-                        "pid" => 0,
-                        "tid" => thread_id,
-                        "name" => name,
-                        "ph" => "B",
-                        "ts" => us
-                    }).unwrap();
-                }
-                Sample::Exit(tid, t) => {
-                    let thread_id = self.threads[tid.0].name.as_str();
-                    let us = t / 1000;
-
-                    data.push(object!{
-                        "pid" => 0,
-                        "tid" => thread_id,
-                        "ph" => "E",
-                        "ts" => us
-                    }).unwrap();
-                }
+        while let Ok(sample) = self.rx.try_recv() {
+            if sample.t0 > start_time {
+                break;
             }
+
+            let thread_id = self.threads[sample.tid.0].name.as_str();
+            let t0 = sample.t0 / 1000;
+            let t1 = sample.t1 / 1000;
+
+            data.push(object!{
+                "pid" => 0,
+                "tid" => thread_id,
+                "name" => sample.name,
+                "ph" => "B",
+                "ts" => t0
+            }).unwrap();
+
+            data.push(object!{
+                "pid" => 0,
+                "tid" => thread_id,
+                "ph" => "E",
+                "ts" => t1
+            }).unwrap();
         }
 
         let s = json::stringify_pretty(data, 2);
@@ -157,32 +155,36 @@ impl Profiler {
 }
 
 #[cfg(feature = "thread_profiler")]
-pub struct ProfileScope;
+pub struct ProfileScope {
+    name: &'static str,
+    t0: u64,
+}
 
 #[cfg(feature = "thread_profiler")]
 impl ProfileScope {
     pub fn new(name: &'static str) -> ProfileScope {
-        THREAD_PROFILER.with(|profiler| {
-            match *profiler.borrow() {
-                Some(ref profiler) => {
-                    profiler.enter(name);
-                }
-                None => {
-                    println!("ERROR: ProfileScope {} on unregistered thread!", name);
-                }
-            }
-        });
+        let t0 = precise_time_ns();
 
-        ProfileScope
+        ProfileScope {
+            name: name,
+            t0: t0,
+        }
     }
 }
 
 #[cfg(feature = "thread_profiler")]
 impl Drop for ProfileScope {
     fn drop(&mut self) {
+        let t1 = precise_time_ns();
+
         THREAD_PROFILER.with(|profiler| {
-            if let Some(ref profiler) = *profiler.borrow() {
-                profiler.exit();
+            match *profiler.borrow() {
+                Some(ref profiler) => {
+                    profiler.push_sample(self.name, self.t0, t1);
+                }
+                None => {
+                    println!("ERROR: ProfileScope {} on unregistered thread!", self.name);
+                }
             }
         });
     }
