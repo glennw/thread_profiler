@@ -2,6 +2,12 @@
 name = "thread_profiler"
 version = "0.1.0"
 authors = ["Glenn Watson <github@intuitionlibrary.com>"]
+description = "A thread profiling library that outputs profiles in the chromium trace format."
+repository = "https://github.com/glennw/thread_profiler"
+documentation = "https://github.com/glennw/thread_profiler"
+homepage = "https://github.com/glennw/thread_profiler"
+keywords = ["profiler", "trace"]
+license = "Apache-2.0/MIT"
 
 [dependencies]
 time = "0.1.36"
