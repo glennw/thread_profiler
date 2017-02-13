@@ -1,6 +1,9 @@
+#[cfg(feature = "thread_profiler")]
 extern crate time;
+#[cfg(feature = "thread_profiler")]
 #[macro_use]
 extern crate json;
+#[cfg(feature = "thread_profiler")]
 #[macro_use]
 extern crate lazy_static;
 
