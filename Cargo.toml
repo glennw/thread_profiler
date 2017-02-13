@@ -10,9 +10,9 @@ keywords = ["profiler", "trace"]
 license = "Apache-2.0/MIT"
 
 [dependencies]
-time = "0.1.36"
-json = "0.11.5"
-lazy_static = "0.2.2"
+time = { version = "0.1.36", optional = true }
+json = { version = "0.11.5", optional = true }
+lazy_static = { version = "0.2.2", optional = true }
 
 [features]
-thread_profiler = []
+thread_profiler = ["time", "json", "lazy_static"]
