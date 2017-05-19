@@ -3,7 +3,7 @@ extern crate time;
 
 #[cfg(feature = "thread_profiler")]
 #[macro_use]
-extern crate json;
+extern crate serde_json;
 
 #[cfg(feature = "thread_profiler")]
 #[macro_use]
@@ -13,10 +13,9 @@ pub use internal::*;
 
 #[cfg(feature = "thread_profiler")]
 mod internal {
-    use json;
+    use serde_json;
     use std::cell::RefCell;
     use std::fs::File;
-    use std::io::Write;
     use std::sync::mpsc::{channel, Sender, Receiver};
     use std::sync::Mutex;
     use time::precise_time_ns;
@@ -108,7 +107,7 @@ mod internal {
             // Stop reading samples that are written after
             // write_profile() is called.
             let start_time = precise_time_ns();
-            let mut data = json::JsonValue::new_array();
+            let mut data = Vec::new();
 
             while let Ok(sample) = self.rx.try_recv() {
                 if sample.t0 > start_time {
@@ -119,25 +118,24 @@ mod internal {
                 let t0 = sample.t0 / 1000;
                 let t1 = sample.t1 / 1000;
 
-                data.push(object!{
-                    "pid" => 0,
-                    "tid" => thread_id,
-                    "name" => sample.name,
-                    "ph" => "B",
-                    "ts" => t0
-                }).unwrap();
+                data.push(json!({
+                    "pid": 0,
+                    "tid": thread_id,
+                    "name": sample.name,
+                    "ph": "B",
+                    "ts": t0
+                }));
 
-                data.push(object!{
-                    "pid" => 0,
-                    "tid" => thread_id,
-                    "ph" => "E",
-                    "ts" => t1
-                }).unwrap();
+                data.push(json!({
+                    "pid": 0,
+                    "tid": thread_id,
+                    "ph": "E",
+                    "ts": t1
+                }));
             }
 
-            let s = json::stringify_pretty(data, 2);
-            let mut f = File::create(filename).unwrap();
-            f.write_all(s.as_bytes()).unwrap();
+            let f = File::create(filename).unwrap();
+            serde_json::to_writer_pretty(f, &data).unwrap();
         }
     }
 
