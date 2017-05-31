@@ -18,6 +18,7 @@ mod internal {
     use std::fs::File;
     use std::sync::mpsc::{channel, Sender, Receiver};
     use std::sync::Mutex;
+    use std::thread;
     use time::precise_time_ns;
 
     #[macro_export]
@@ -84,11 +85,15 @@ mod internal {
             }
         }
 
-        fn register_thread(&mut self, name: String) {
+        fn register_thread(&mut self) {
             let id = ThreadId(self.threads.len());
+            let name = match thread::current().name() {
+                Some(s) => s.to_string(),
+                None => format!("<unnamed-{}>", id.0),
+            };
 
             self.threads.push(ThreadInfo {
-                name: name,
+                name,
             });
 
             THREAD_PROFILER.with(|profiler| {
@@ -179,10 +184,10 @@ mod internal {
                     .write_profile(filename);
     }
 
-    pub fn register_thread_with_profiler(thread_name: String) {
+    pub fn register_thread_with_profiler() {
         GLOBAL_PROFILER.lock()
                     .unwrap()
-                    .register_thread(thread_name);
+                    .register_thread();
     }
 }
 
@@ -198,6 +203,6 @@ mod internal {
         println!("WARN: write_profile was called when the thread profiler is disabled!");
     }
 
-    pub fn register_thread_with_profiler(_thread_name: String) {
+    pub fn register_thread_with_profiler() {
     }
 }
