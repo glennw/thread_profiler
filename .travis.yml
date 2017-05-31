@@ -1,0 +1,7 @@
+language: rust
+rust:
+  - nightly
+  - stable
+script:
+  - cargo build
+  - cargo build --features thread_profiler
