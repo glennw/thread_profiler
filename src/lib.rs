@@ -16,6 +16,7 @@ mod internal {
     use serde_json;
     use std::cell::RefCell;
     use std::fs::File;
+    use std::io::BufWriter;
     use std::sync::mpsc::{channel, Sender, Receiver};
     use std::sync::Mutex;
     use std::thread;
@@ -139,8 +140,8 @@ mod internal {
                 }));
             }
 
-            let f = File::create(filename).unwrap();
-            serde_json::to_writer_pretty(f, &data).unwrap();
+            let f = BufWriter::new(File::create(filename).unwrap());
+            serde_json::to_writer(f, &data).unwrap();
         }
     }
 
