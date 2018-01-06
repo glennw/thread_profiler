@@ -1,6 +1,6 @@
 [package]
 name = "thread_profiler"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Glenn Watson <github@intuitionlibrary.com>"]
 description = "A thread profiling library that outputs profiles in the chromium trace format."
 repository = "https://github.com/glennw/thread_profiler"
