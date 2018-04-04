@@ -26,8 +26,7 @@ mod internal {
     #[macro_export]
     macro_rules! profile_scope {
         ($string:expr) => {
-            let _pname = format!("{}: {}", module_path!(), $string);
-            let _profile_scope = $crate::ProfileScope::new(_pname);
+            let _profile_scope = $crate::ProfileScope::new(format!("{}: {}", module_path!(), $string));
         };
     }
 
