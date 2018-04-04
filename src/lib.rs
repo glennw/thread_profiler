@@ -17,16 +17,18 @@ mod internal {
     use std::cell::RefCell;
     use std::fs::File;
     use std::io::BufWriter;
-    use std::sync::mpsc::{channel, Sender, Receiver};
+    use std::string::String;
     use std::sync::Mutex;
+    use std::sync::mpsc::{channel, Receiver, Sender};
     use std::thread;
     use time::precise_time_ns;
 
     #[macro_export]
     macro_rules! profile_scope {
         ($string:expr) => {
-            let _profile_scope = $crate::ProfileScope::new($string);
-        }
+            let _pname = format!("{}: {}", module_path!(), $string);
+            let _profile_scope = $crate::ProfileScope::new(_pname);
+        };
     }
 
     lazy_static! {
@@ -44,7 +46,7 @@ mod internal {
 
     struct Sample {
         tid: ThreadId,
-        name: &'static str,
+        name: String,
         t0: u64,
         t1: u64,
     }
@@ -55,10 +57,7 @@ mod internal {
     }
 
     impl ThreadProfiler {
-        fn push_sample(&self,
-                    name: &'static str,
-                    t0: u64,
-                    t1: u64) {
+        fn push_sample(&self, name: String, t0: u64, t1: u64) {
             let sample = Sample {
                 tid: self.id,
                 name: name,
@@ -93,9 +92,7 @@ mod internal {
                 None => format!("<unnamed-{}>", id.0),
             };
 
-            self.threads.push(ThreadInfo {
-                name,
-            });
+            self.threads.push(ThreadInfo { name });
 
             THREAD_PROFILER.with(|profiler| {
                 assert!(profiler.borrow().is_none());
@@ -147,18 +144,15 @@ mod internal {
 
     #[doc(hidden)]
     pub struct ProfileScope {
-        name: &'static str,
+        name: String,
         t0: u64,
     }
 
     impl ProfileScope {
-        pub fn new(name: &'static str) -> ProfileScope {
+        pub fn new(name: String) -> ProfileScope {
             let t0 = precise_time_ns();
 
-            ProfileScope {
-                name: name,
-                t0: t0,
-            }
+            ProfileScope { name: name, t0: t0 }
         }
     }
 
@@ -166,29 +160,23 @@ mod internal {
         fn drop(&mut self) {
             let t1 = precise_time_ns();
 
-            THREAD_PROFILER.with(|profiler| {
-                match *profiler.borrow() {
-                    Some(ref profiler) => {
-                        profiler.push_sample(self.name, self.t0, t1);
-                    }
-                    None => {
-                        println!("ERROR: ProfileScope {} on unregistered thread!", self.name);
-                    }
+            THREAD_PROFILER.with(|profiler| match *profiler.borrow() {
+                Some(ref profiler) => {
+                    profiler.push_sample(self.name.clone(), self.t0, t1);
+                }
+                None => {
+                    println!("ERROR: ProfileScope {} on unregistered thread!", self.name);
                 }
             });
         }
     }
 
     pub fn write_profile(filename: &str) {
-        GLOBAL_PROFILER.lock()
-                    .unwrap()
-                    .write_profile(filename);
+        GLOBAL_PROFILER.lock().unwrap().write_profile(filename);
     }
 
     pub fn register_thread_with_profiler() {
-        GLOBAL_PROFILER.lock()
-                    .unwrap()
-                    .register_thread();
+        GLOBAL_PROFILER.lock().unwrap().register_thread();
     }
 }
 
@@ -196,14 +184,12 @@ mod internal {
 mod internal {
     #[macro_export]
     macro_rules! profile_scope {
-        ($string:expr) => {
-        }
+        ($string:expr) => {};
     }
 
     pub fn write_profile(_filename: &str) {
         println!("WARN: write_profile was called when the thread profiler is disabled!");
     }
 
-    pub fn register_thread_with_profiler() {
-    }
+    pub fn register_thread_with_profiler() {}
 }
