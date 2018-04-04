@@ -1,7 +1,17 @@
 language: rust
+cache: cargo
 rust:
   - nightly
+  - beta
   - stable
 script:
-  - cargo build
-  - cargo build --features thread_profiler
+  - cargo test --all --verbose
+  - cargo test --all --verbose --features thread_profiler
+  - cargo run --example macro --verbose
+  - cargo run --example simple --verbose
+  - cargo run --example real_world_scenario --verbose --features thread_profiler
+  - cargo build --all --verbose
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
