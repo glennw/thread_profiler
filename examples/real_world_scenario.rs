@@ -1,4 +1,5 @@
-#[macro_use] extern crate thread_profiler;
+#[macro_use]
+extern crate thread_profiler;
 
 #[cfg(feature = "thread_profiler")]
 use thread_profiler::ProfileScope;
