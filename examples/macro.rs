@@ -13,9 +13,9 @@
 ///     ^             ^
 ///     |           'simple: section 2'
 /// 'simple: section_1'
-extern crate thread_profiler;
 
-use thread_profiler::ProfileScope;
+#[macro_use]
+extern crate thread_profiler;
 
 use std::vec::Vec;
 
@@ -37,14 +37,14 @@ fn main() {
 fn long_complex_function() {
     // This will create a profile scope called
     // 'simple' as this is the name of the module.
-    ProfileScope::new(format!("{}: {}", module_path!(), "covering function"));
+    profile_scope!("covering function");
     let mut v = Vec::new();
     {
         // This will create a profile scope called
         // 'simple: section_1', i.e. the name of the
         // module with a comment describing the profile.
 
-        ProfileScope::new(format!("{}: {}", module_path!(), "section 1"));
+        profile_scope!("section 1");
         // Do complex work
         v.push(1);
         // Drop is called on
@@ -53,7 +53,7 @@ fn long_complex_function() {
     {
         // This will create a profile scope called
         // 'simple: section_2'
-        ProfileScope::new(format!("{}: {}", module_path!(), "section 2"));
+        profile_scope!("section 2");
         // Do complex work
         v.push(2);
         // Drop is called on
