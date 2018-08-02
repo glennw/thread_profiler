@@ -4,7 +4,7 @@
 
 # Thread Profiler
 
-This is a simple CPU profiler for [WebRender](). It can write out the resutls in [Trace Event Format](https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/edit).
+This is a simple CPU profiler for [WebRender](). It can write out the results in [Trace Event Format](https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/edit).
 
 Read more about the usage and associated tools at https://aras-p.info/blog/2017/01/23/Chrome-Tracing-as-Profiler-Frontend/
 
